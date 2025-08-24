@@ -1,25 +1,26 @@
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setAnswer("Loading...");
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const { question } = req.body;
 
   try {
-    const response = await fetch("/api/ask", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ question }),
+    const response = await client.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: question }],
     });
 
-    const data = await response.json();
-
-    if (data.answer) {
-      setAnswer(data.answer);
-    } else {
-      setAnswer("Error: No answer received from backend.");
-    }
+    const answer = response.choices[0].message.content;
+    res.status(200).json({ answer });
   } catch (error) {
-    console.error("Error fetching answer:", error);
-    setAnswer("Something went wrong. Please try again.");
+    console.error("OpenAI API error:", error);
+    res.status(500).json({ error: "Failed to fetch answer" });
   }
-};
+}
