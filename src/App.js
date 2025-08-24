@@ -4,20 +4,43 @@ import "./App.css";
 function App() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleAsk = async (e) => {
     e.preventDefault();
+
     if (!question.trim()) {
-      setAnswer("Please type a question first!");
-    } else {
-      setAnswer(`You asked: "${question}". Here's where the answer will appear.`);
+      setAnswer("⚠️ Please type a question first!");
+      return;
     }
+
+    setLoading(true);
+    setAnswer("");
+
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        body: JSON.stringify({ question }),
+      });
+
+      const data = await res.json();
+      if (data.answer) {
+        setAnswer(data.answer);
+      } else {
+        setAnswer("❌ No answer received.");
+      }
+    } catch (err) {
+      console.error(err);
+      setAnswer("❌ Something went wrong. Please try again.");
+    }
+
+    setLoading(false);
   };
 
   return (
     <div className="app-container">
       <h1>Homework Helper</h1>
-      <form onSubmit={handleSubmit} className="form-container">
+      <form onSubmit={handleAsk} className="form-container">
         <input
           type="text"
           placeholder="Type your question..."
@@ -26,7 +49,8 @@ function App() {
         />
         <button type="submit">Get Answer</button>
       </form>
-      {answer && <div className="answer-box">{answer}</div>}
+      {loading && <div className="answer-box">⏳ Loading...</div>}
+      {answer && !loading && <div className="answer-box">{answer}</div>}
     </div>
   );
 }
